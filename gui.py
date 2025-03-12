@@ -1,99 +1,177 @@
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QHBoxLayout, QPushButton, QGroupBox, QTextEdit, QLineEdit
 import sys
+from PyQt5.QtWidgets import QApplication, QMainWindow, QGroupBox, QVBoxLayout, QTextEdit, QPushButton, QLabel, QLineEdit, QComboBox, QHBoxLayout, QGridLayout, QWidget
 from actions import Actions
 
-class GUI:
+"""
+Defines the main UI for the customer database.
+"""
+
+class MainWindow(QMainWindow):
     def __init__(self):
-        """
-        Create the main window and add the layout.
-        """
-        app = QApplication(sys.argv)
-        self.window = QMainWindow()
-        self.window.setWindowTitle('Customer Database')
-        self.window.setGeometry(100, 100, 600, 400)
-        self.status_log = None
-        self.layout()
-        
-        # Instantiate actions for the GUI
+        super().__init__()
         self.actions = Actions(self)
-        self.window.show()
-        sys.exit(app.exec_())
+        self.initUI()
 
-    def layout(self):
+#region GUI Layout
+    def initUI(self):
         """
-        Create the layout and manage the components.
-        Calls each of the UI components to be added to the layout.
+        Initializes the GUI layout.
         """
-        central_widget = QWidget()
-        self.window.setCentralWidget(central_widget)
+        self.setWindowTitle('Customer Database')
+        self.setGeometry(100, 100, 800, 600)
+        
+        # Create the main layout
+        mainLayout = QHBoxLayout()
+        centralWidget = QWidget()
+        centralWidget.setLayout(mainLayout)
+        self.setCentralWidget(centralWidget)
+        
+        # Create the sub-layout columns
+        leftLayout = QVBoxLayout()
+        rightLayout = QVBoxLayout()
+        
+        # Create the group boxes
+        self.createMessageLogGroupBox()
+        self.createEnterModelGroupBox()
+        self.createRunTestGroupBox()
+        
+        # Add the group boxes to the sub-layout columns
+        leftLayout.addWidget(self.messageLogGroupBox)
+        rightLayout.addWidget(self.enterModelGroupBox)
+        rightLayout.addWidget(self.runTestGroupBox)
+        
+        # Add the sub-layout columns to the main layout
+        mainLayout.addLayout(leftLayout)
+        mainLayout.addLayout(rightLayout)
 
-        main_layout = QHBoxLayout()
-        central_widget.setLayout(main_layout)
+        self.modelComboBox.currentIndexChanged.connect(self.actions.updateEnterModelButtonState)
+        self.actions.updateEnterModelButtonState()  # Initial check
 
-        left_layout = QVBoxLayout()
-        right_layout = QVBoxLayout()
+        self.modelComboBox.currentIndexChanged.connect(self.actions.updateFrequencyInputState)
+        self.actions.updateFrequencyInputState()  # Initial check
+#endregion GUI Layout
 
-        main_layout.addLayout(left_layout)
-        main_layout.addLayout(right_layout)
-
-        left_layout.addWidget(self.status_log_groupbox())
-        right_layout.addWidget(self.search_database_groupbox())
-
-    def status_log_groupbox(self):
+#region Message Log
+    def createMessageLogGroupBox(self):
         """
-        Create the groupbox for the status log.
+        Creates the message log group box.
         """
-        groupbox = QGroupBox('Status Log')
-        layout = QVBoxLayout()
-        groupbox.setLayout(layout)
+        self.messageLogGroupBox = QGroupBox("Message Log", self)
+        
+        messageLogLayout = QVBoxLayout()
+        self.messageLog = QTextEdit()
+        self.messageLog.setReadOnly(True)
+        messageLogLayout.addWidget(self.messageLog)
+        
+        self.clearButton = QPushButton("Clear", self)
+        messageLogLayout.addWidget(self.clearButton)
+        self.clearButton.clicked.connect(self.messageLog.clear)
+        
+        self.messageLogGroupBox.setLayout(messageLogLayout)
+#endregion Message Log
 
-        self.status_log = QTextEdit()
-        self.status_log.setReadOnly(True)
-        layout.addWidget(self.status_log)
 
-        return groupbox
-
-    
-    def search_database_groupbox(self):
+#region Enter Model
+    def createEnterModelGroupBox(self):
         """
-        Search database groupbox.
+        Creates the Enter Model group box.
         """
-        # Main button groupbox layout
-        groupbox = QGroupBox('Buttons')
-        layout = QVBoxLayout()
-        groupbox.setLayout(layout)
+        self.enterModelGroupBox = QGroupBox("Enter Model", self)
+        
+        enterModelLayout = QHBoxLayout()
+        self.amplitude = QLabel("Model Name:", self)
+        enterModelLayout.addWidget(self.amplitude)
+        
+        self.modelComboBox = QComboBox(self)
+        self.modelComboBox.addItems(MODELS)
+        enterModelLayout.addWidget(self.modelComboBox)
+        
+        self.inputFrequency = QLineEdit(self)
+        self.inputFrequency.setPlaceholderText("Enter Frequency")
+        enterModelLayout.addWidget(self.inputFrequency)
 
-        # First row layout
-        first_row = QHBoxLayout()
-        layout.addLayout(first_row)
-        # Create a text box
-        enterFirstName = QLineEdit()
-        enterFirstName.setPlaceholderText("Enter First Name")
-        enterLastName = QLineEdit()
-        enterLastName.setPlaceholderText("Enter Last Name")
-        # Add text box to layout
-        first_row.addWidget(enterFirstName)
-        first_row.addWidget(enterLastName)
+        self.crystalType = QLineEdit(self)
+        self.crystalType.setPlaceholderText("Enter Crystal Type")
+        enterModelLayout.addWidget(self.crystalType)
 
-        # Second row layout
-        second_row = QHBoxLayout()
-        layout.addLayout(second_row)
-        # Create a button
-        search_button = QPushButton('Search')
-        # Add button to layout
-        second_row.addWidget(search_button)
-        search_button.clicked.connect(lambda: self.actions.search_button_action(enterFirstName.text(), enterLastName.text()))
+        self.enterModelButton = QPushButton("Enter Model", self)
+        enterModelLayout.addWidget(self.enterModelButton)
+        self.enterModelButton.clicked.connect(self.actions.enterModel)
+        
+        self.enterModelGroupBox.setLayout(enterModelLayout)
+#endregion Enter Model
 
-        return groupbox
-
-    def update_status_log(self, message):
+#region Run Test
+    def createRunTestGroupBox(self):
         """
-        Update the status log with a new message.
+        Creates the Run Test group box.
         """
-        self.status_log.append(message)
+        self.runTestGroupBox = QGroupBox("Run Test", self)
+        
+        runTestLayout = QGridLayout()
+        
+        # Setup Test Equipment Button in its own horizontal layout
+        setupEquipmentLayout = QHBoxLayout()
+        self.setupEquipmentButton = QPushButton("Setup Test Equipment", self)
+        self.setupEquipmentButton.setEnabled(False)
+        self.setupEquipmentButton.clicked.connect(self.actions.setupTestEquipment)
+        setupEquipmentLayout.addWidget(self.setupEquipmentButton)
+        runTestLayout.addLayout(setupEquipmentLayout, 0, 0, 1, 2)
+        
+        # Modulation Amplitude
+        self.amplitude = QLabel("Modulation Amplitude", self)
+        runTestLayout.addWidget(self.amplitude, 1, 0)
+        self.amplitudeInput = QLineEdit(self)
+        self.amplitudeInput.setPlaceholderText("Measure Modulation Amplitude")
+        self.amplitudeInput.setEnabled(False)
+        runTestLayout.addWidget(self.amplitudeInput, 1, 1)
+        self.amplitudeButton = QPushButton("Acquire", self)
+        self.amplitudeButton.setEnabled(False)
+        runTestLayout.addWidget(self.amplitudeButton, 1, 2)
+        self.amplitudeButton.clicked.connect(self.actions.toggleAmplitudeThread)
 
-def main():
-    gui = GUI()
+        # Upper Rail
+        self.upperRail = QLabel("Upper Rail", self)
+        runTestLayout.addWidget(self.upperRail, 2, 0)
+        self.upperRailInput = QLineEdit(self)
+        self.upperRailInput.setPlaceholderText("Measure Upper Rail")
+        self.upperRailInput.setEnabled(False)
+        runTestLayout.addWidget(self.upperRailInput, 2, 1)
+        self.upperRailButton = QPushButton("Acquire", self)
+        self.upperRailButton.setEnabled(False)
+        runTestLayout.addWidget(self.upperRailButton, 2, 2)
+        self.upperRailButton.clicked.connect(self.actions.toggleUpperRailThread)
 
-if __name__ == "__main__":
-    main()
+        # Lower Rail
+        self.lowerRail = QLabel("Lower Rail", self)
+        runTestLayout.addWidget(self.lowerRail, 3, 0)
+        self.lowerRailInput = QLineEdit(self)
+        self.lowerRailInput.setPlaceholderText("Measure Lower Rail")
+        self.lowerRailInput.setEnabled(False)
+        runTestLayout.addWidget(self.lowerRailInput, 3, 1)
+        self.lowerRailButton = QPushButton("Acquire", self)
+        self.lowerRailButton.setEnabled(False)
+        runTestLayout.addWidget(self.lowerRailButton, 3, 2)
+        self.lowerRailButton.clicked.connect(self.actions.toggleLowerRailThread)
+
+        # Dark Level
+        self.darkLevel = QLabel("Dark Level", self)
+        runTestLayout.addWidget(self.darkLevel, 4, 0)
+        self.darkLevelInput = QLineEdit(self)
+        self.darkLevelInput.setPlaceholderText("Measure Dark Level")
+        self.darkLevelInput.setEnabled(False)
+        runTestLayout.addWidget(self.darkLevelInput, 4, 1)
+        self.darkLevelButton = QPushButton("Acquire", self)
+        self.darkLevelButton.setEnabled(False)
+        runTestLayout.addWidget(self.darkLevelButton, 4, 2)
+        self.darkLevelButton.clicked.connect(self.actions.toggleDarkLevelThread)
+
+        self.runTestGroupBox.setLayout(runTestLayout)
+
+#endregion Run Test
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    mainWindow = MainWindow()
+    mainWindow.show()
+    sys.exit(app.exec_())
